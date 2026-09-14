@@ -1,0 +1,196 @@
+respostas atividade 3
+
+1
+
+SELECT nome, email, telefone
+FROM tb_cliente
+WHERE ativo = 'S'
+ORDER BY nome;
+
+2
+
+SELECT id_venda, dt_venda, valor_liquido
+FROM tb_venda
+WHERE canal = 'APP'
+  AND status = 'FECHADA';
+
+3
+
+SELECT p.nome AS nome_produto,
+       p.sku,
+       c.nome AS nome_categoria
+FROM tb_produto p
+JOIN tb_categoria c
+  ON p.id_categoria = c.id_categoria;
+
+4
+
+SELECT COUNT(*) AS total_vendedores
+FROM tb_vendedor;
+
+5
+
+SELECT nome, preco_unit
+FROM tb_produto
+WHERE ativo = 'S'
+ORDER BY preco_unit DESC;
+
+6
+
+SELECT canal,
+       SUM(valor_liquido) AS faturamento_total
+FROM tb_venda
+WHERE status = 'FECHADA'
+  AND canal IN ('APP', 'SITE', 'LOJA', 'TELEFONE')
+GROUP BY canal
+ORDER BY faturamento_total DESC;
+
+7
+
+SELECT v.nome AS nome_vendedor,
+       ROUND(AVG(ve.valor_liquido), 2) AS ticket_medio
+FROM tb_vendedor v
+JOIN tb_venda ve
+  ON v.id_vendedor = ve.id_vendedor
+WHERE ve.status = 'FECHADA'
+GROUP BY v.id_vendedor, v.nome;
+
+8
+
+SELECT c.nome, c.email
+FROM tb_cliente c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM tb_venda v
+    WHERE v.id_cliente = c.id_cliente
+);
+
+9
+
+SELECT v.id_venda,
+       c.nome AS nome_cliente,
+       v.valor_liquido
+FROM tb_venda v
+JOIN tb_cliente c
+  ON v.id_cliente = c.id_cliente
+WHERE v.status = 'FECHADA'
+  AND v.valor_liquido > (
+      SELECT AVG(valor_liquido)
+      FROM tb_venda
+      WHERE status = 'FECHADA'
+  );
+
+10
+
+SELECT nome,
+       preco_unit,
+       CASE
+           WHEN preco_unit < 50 THEN 'BARATO'
+           WHEN preco_unit <= 200 THEN 'MÉDIO'
+           ELSE 'CARO'
+       END AS faixa_preco
+FROM tb_produto;
+
+11
+
+SELECT c.nome AS nome_cliente,
+       v.dt_venda,
+       v.valor_liquido,
+       ROW_NUMBER() OVER (
+           PARTITION BY v.id_cliente
+           ORDER BY v.dt_venda, v.id_venda
+       ) AS numero_compra
+FROM tb_venda v
+JOIN tb_cliente c
+  ON v.id_cliente = c.id_cliente
+ORDER BY c.nome, v.dt_venda, v.id_venda;
+
+12
+
+SELECT nome_vendedor,
+       faturamento_total,
+       ROUND(
+           faturamento_total /
+           SUM(faturamento_total) OVER () * 100,
+           2
+       ) AS percentual_faturamento
+FROM (
+    SELECT v.nome AS nome_vendedor,
+           SUM(ve.valor_liquido) AS faturamento_total
+    FROM tb_vendedor v
+    JOIN tb_venda ve
+      ON v.id_vendedor = ve.id_vendedor
+    WHERE ve.status = 'FECHADA'
+    GROUP BY v.id_vendedor, v.nome
+)
+ORDER BY faturamento_total DESC;
+
+13
+
+WITH vendas_mensais AS (
+    SELECT TRUNC(ve.dt_venda, 'MM') AS mes_referencia,
+           v.nome AS nome_vendedor,
+           SUM(ve.valor_liquido) AS receita_total
+    FROM tb_venda ve
+    JOIN tb_vendedor v
+      ON ve.id_vendedor = v.id_vendedor
+    WHERE ve.status = 'FECHADA'
+    GROUP BY TRUNC(ve.dt_venda, 'MM'),
+             v.id_vendedor,
+             v.nome
+)
+SELECT mes_referencia,
+       nome_vendedor,
+       receita_total,
+       DENSE_RANK() OVER (
+           PARTITION BY mes_referencia
+           ORDER BY receita_total DESC
+       ) AS ranking_mensal
+FROM vendas_mensais
+ORDER BY mes_referencia, ranking_mensal;
+
+14
+
+SELECT id_venda,
+       valor_liquido,
+       valor_liquido - AVG(valor_liquido) OVER () AS diferenca_para_media
+FROM tb_venda;
+
+15
+
+WITH produtos_vendidos AS (
+    SELECT p.id_produto,
+           p.nome AS nome_produto,
+           SUM(i.quantidade) AS quantidade_vendida
+    FROM tb_produto p
+    JOIN tb_venda_item i
+      ON p.id_produto = i.id_produto
+    GROUP BY p.id_produto, p.nome
+),
+ranking_produtos AS (
+    SELECT id_produto,
+           nome_produto,
+           quantidade_vendida,
+           DENSE_RANK() OVER (
+               ORDER BY quantidade_vendida DESC
+           ) AS ranking
+    FROM produtos_vendidos
+)
+SELECT id_produto,
+       nome_produto,
+       quantidade_vendida,
+       ranking
+FROM ranking_produtos
+WHERE ranking <= 3
+ORDER BY ranking, nome_produto;
+
+
+
+
+
+
+
+
+
+
+
