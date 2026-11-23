@@ -1,0 +1,52 @@
+1-
+CREATE OR REPLACE VIEW V_VENDAS_RESUMO AS
+SELECT
+    v.id_venda,
+    v.dt_venda,
+    v.status,
+    v.canal,
+    c.nome AS nome_cliente,
+    ve.nome AS nome_vendedor,
+    v.valor_liquido
+FROM vendas v
+INNER JOIN clientes c
+    ON v.id_cliente = c.id_cliente
+INNER JOIN vendedores ve
+    ON v.id_vendedor = ve.id_vendedor;
+
+2-
+CREATE OR REPLACE VIEW V_CLIENTE_PUBLICO AS
+SELECT
+    id_cliente,
+    nome,
+    email,
+    ativo
+FROM clientes
+WHERE ativo = 'S';
+
+3-
+CREATE OR REPLACE VIEW V_VENDAS_POR_CATEGORIA AS
+SELECT
+    DATE_TRUNC('month', v.dt_venda) AS mes,
+    cat.nome AS categoria,
+    SUM(iv.valor_total) AS faturamento_acumulado
+FROM vendas v
+INNER JOIN itens_venda iv
+    ON v.id_venda = iv.id_venda
+INNER JOIN produtos p
+    ON iv.id_produto = p.id_produto
+INNER JOIN categorias cat
+    ON p.id_categoria = cat.id_categoria
+WHERE v.status = 'FECHADA'
+GROUP BY
+    DATE_TRUNC('month', v.dt_venda),
+    cat.nome;
+
+4-
+SELECT
+    categoria,
+    faturamento_acumulado
+FROM V_VENDAS_POR_CATEGORIA
+WHERE mes = DATE_TRUNC('month', CURRENT_DATE)
+  AND faturamento_acumulado > 5000
+ORDER BY faturamento_acumulado DESC;
