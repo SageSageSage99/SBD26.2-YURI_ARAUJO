@@ -1,0 +1,91 @@
+1-
+INSERT INTO tb_venda (
+    id_venda,
+    id_cliente,
+    dt_venda,
+    status
+)
+VALUES (
+    1001,
+    9999,
+    SYSDATE,
+    'ABERTA'
+);
+
+2-
+UPDATE tb_venda
+SET status = 'PENDENTE'
+WHERE id_venda = 1001;
+
+3-
+INSERT INTO tb_produto (
+    id_produto,
+    nome,
+    preco_unitario
+)
+VALUES (
+    101,
+    'Teclado USB',
+    -15.00
+);
+
+O banco deverá rejeitar a inserção caso exista uma constraint que impeça preços negativos.
+- Constraint acionada: CHECK.
+- Erro esperado no Oracle: ORA-02290: check constraint violated.
+- Regra comercial garantida: o preço de um produto não pode ser inferior a zero.
+
+Exemplo de constraint-
+ALTER TABLE tb_produto
+ADD CONSTRAINT CK_PRODUTO_PRECO
+CHECK (preco_unitario >= 0);
+
+Parte 2
+
+4-
+ALTER TABLE tb_venda_item
+ADD CONSTRAINT CK_VENDA_ITEM_DESCONTO
+CHECK (
+    desconto_item >= 0
+    AND desconto_item <= (preco_unitario * 0.50)
+);
+
+5-
+ALTER TABLE tb_cliente
+ADD CONSTRAINT UK_CLIENTE_TELEFONE
+UNIQUE (telefone);
+
+Parte 3
+
+6-
+ALTER TABLE tb_venda_item
+ADD CONSTRAINT FK_ITEM_VENDA
+FOREIGN KEY (id_venda)
+REFERENCES tb_venda (id_venda)
+ON DELETE CASCADE;
+
+DELETE FROM tb_venda
+WHERE id_venda = 1001;
+
+Quando a venda principal é excluída, o Oracle exclui automaticamente todos os itens associados a ela.
+- Recurso utilizado: ON DELETE CASCADE.
+- Comportamento: exclusão automática dos registros filhos.
+- Regra garantida: evita que existam itens de venda associados a uma venda que não existe mais.
+Perigo do uso indiscriminado:
+
+Essa cláusula pode provocar perda de informações importantes. Em sistemas corporativos, excluir uma venda pode significar perder também os registros de seus produtos, quantidades, preços e descontos.Por isso, o uso de CASCADE deve ser avaliado cuidadosamente, principalmente em tabelas que armazenam histórico financeiro.
+
+7-
+UPDATE tb_vendedor
+SET ativo = 'N'
+WHERE id_vendedor = 10;
+
+A exclusão lógica é preferível em bancos corporativos porque preserva o histórico das operações realizadas pelo vendedor.
+
+
+
+
+
+
+
+
+
